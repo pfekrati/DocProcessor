@@ -100,10 +100,11 @@ Update `appsettings.json` in each project with your Azure credentials:
 ```json
 {
   "AzureOpenAI": {
-    "Endpoint": "https://your-openai-resource.openai.azure.com/",
+    "Endpoint": "https://your-openai-resource.cognitiveservices.azure.com/",
     "ApiKey": "your-api-key",
-    "DefaultDeploymentId": "gpt-4o",
-    "ApiVersion": "2024-10-21"
+    "ApiVersion": "2024-05-01-preview",
+    "BatchEndpoint": "https://your-openai-resource.cognitiveservices.azure.com/",
+    "BatchApiKey": "your-batch-api-key"
   },
   "DocumentIntelligence": {
     "Endpoint": "https://your-doc-intelligence.cognitiveservices.azure.com/",
@@ -123,6 +124,26 @@ Update `appsettings.json` in each project with your Azure credentials:
   }
 }
 ```
+
+### Configuration Options
+
+| Section | Setting | Description |
+|---------|---------|-------------|
+| **AzureOpenAI** | `Endpoint` | Azure OpenAI service endpoint for real-time processing |
+| | `ApiKey` | API key for Azure OpenAI |
+| | `ApiVersion` | API version (e.g., `2024-05-01-preview`) |
+| | `BatchEndpoint` | Endpoint for batch API operations |
+| | `BatchApiKey` | API key for batch operations |
+| **DocumentIntelligence** | `Endpoint` | Azure Document Intelligence endpoint |
+| | `ApiKey` | API key for Document Intelligence |
+| **CosmosDb** | `ConnectionString` | MongoDB connection string for Cosmos DB |
+| | `DatabaseName` | Database name |
+| | `RequestsCollectionName` | Collection for document requests |
+| | `BatchJobsCollectionName` | Collection for batch job tracking |
+| **BatchProcessing** | `QueueSizeThreshold` | Number of queued items to trigger batch submission |
+| | `ProcessingIntervalMinutes` | Interval for checking queue |
+| | `MaxRetryCount` | Maximum retry attempts for failed operations |
+| | `BatchCheckIntervalMinutes` | Interval for polling batch status |
 
 ## 📡 API Endpoints
 
