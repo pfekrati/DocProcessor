@@ -1,0 +1,136 @@
+@page "/queue"
+@using DocProcessor.Core.Entities
+@using DocProcessor.Core.Enums
+@using DocProcessor.Core.Interfaces
+@using DocProcessor.Core.Configuration
+@using Microsoft.Extensions.Options
+@inject IDocumentRequestRepository RequestRepository
+@inject IOptions<BatchProcessingSettings> BatchSettings
+@rendermode InteractiveServer
+
+<PageTitle>Queue - Document Processor Admin</PageTitle>
+
+<h1>Batch Queue</h1>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Queue Status</h5>
+                <p class="card-text">
+                    <strong>@_queuedCount</strong> requests in queue
+                </p>
+                <div class="progress mb-2">
+                    <div class="progress-bar @(_queuedCount >= _threshold ? "bg-success" : "bg-warning")"
+                         role="progressbar"
+                         style="width: @(Math.Min(100, (_queuedCount * 100.0 / _threshold)))%">
+                    </div>
+                </div>
+                <small class="text-muted">Threshold: @_threshold requests</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Processing Interval</h5>
+                <p class="card-text">
+                    Every <strong>@_intervalMinutes</strong> minutes
+                </p>
+                <small class="text-muted">Or when queue threshold is reached</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Batch Check Interval</h5>
+                <p class="card-text">
+                    Every <strong>@_batchCheckMinutes</strong> minutes
+                </p>
+                <small class="text-muted">For polling batch results</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Queued Requests</h5>
+        <button class="btn btn-sm btn-outline-primary" @onclick="LoadQueueAsync">
+            Refresh
+        </button>
+    </div>
+    <div class="card-body">
+        @if (_loading)
+        {
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        }
+        else if (_queuedRequests.Count == 0)
+        {
+            <div class="alert alert-info">No requests in queue</div>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Document</th>
+                        <th>Model</th>
+                        <th>Queued At</th>
+                        <th>Retry #</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in _queuedRequests)
+                    {
+                        <tr>
+                            <td><code>@request.Id[..8]...</code></td>
+                            <td>@request.DocumentName</td>
+                            <td>@(request.ModelDeploymentId ?? "default")</td>
+                            <td>@request.CreatedAt.ToString("g")</td>
+                            <td>@request.RetryCount</td>
+                            <td>
+                                <a href="requests/@request.Id" class="btn btn-sm btn-outline-primary">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _loading = true;
+    private List<DocumentRequest> _queuedRequests = [];
+    private int _queuedCount;
+    private int _threshold;
+    private int _intervalMinutes;
+    private int _batchCheckMinutes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _threshold = BatchSettings.Value.QueueSizeThreshold;
+        _intervalMinutes = BatchSettings.Value.ProcessingIntervalMinutes;
+        _batchCheckMinutes = BatchSettings.Value.BatchCheckIntervalMinutes;
+        
+        await LoadQueueAsync();
+    }
+
+    private async Task LoadQueueAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        _queuedCount = await RequestRepository.GetQueuedRequestsCountAsync();
+        _queuedRequests = (await RequestRepository.GetQueuedRequestsAsync(100)).ToList();
+
+        _loading = false;
+        StateHasChanged();
+    }
+}

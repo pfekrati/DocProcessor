@@ -1,0 +1,46 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+**/packages/*
+*.nuget.props
+*.nuget.targets
+
+# OS
+.DS_Store
+Thumbs.db
+
+# User-specific files
+*.rsuser
+*.env.local
+*.env.*.local
+
+# Secrets
+appsettings.Development.json
+appsettings.Production.json
+
+# uploaded files
+**/uploads/audio/*
+/RallyChant.Admin/appsettings.json
+/RallyChant.Api/appsettings.json
+/RallyChant.Consumer/wwwroot/appsettings.json
+**/appsettings.json

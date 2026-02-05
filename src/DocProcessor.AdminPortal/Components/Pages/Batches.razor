@@ -1,0 +1,252 @@
+@page "/batches"
+@page "/batches/{BatchId}"
+@using DocProcessor.Core.Entities
+@using DocProcessor.Core.Interfaces
+@inject IBatchJobRepository BatchJobRepository
+@inject IDocumentRequestRepository RequestRepository
+@rendermode InteractiveServer
+
+<PageTitle>Batch Jobs - Document Processor Admin</PageTitle>
+
+@if (string.IsNullOrEmpty(BatchId))
+{
+    <h1>Batch Jobs</h1>
+
+    @if (_loading)
+    {
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+    else
+    {
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>OpenAI Batch ID</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Completed</th>
+                    <th>Failed</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var batch in _batches)
+                {
+                    <tr>
+                        <td><code>@batch.Id[..8]...</code></td>
+                        <td><code>@(batch.OpenAiBatchId?[..Math.Min(12, batch.OpenAiBatchId?.Length ?? 0)] ?? "-")...</code></td>
+                        <td>
+                            <span class="badge @GetStatusBadgeClass(batch.Status)">
+                                @batch.Status
+                            </span>
+                        </td>
+                        <td>@batch.TotalRequests</td>
+                        <td>@batch.CompletedRequests</td>
+                        <td>@batch.FailedRequests</td>
+                        <td>@batch.CreatedAt.ToString("g")</td>
+                        <td>
+                            <a href="batches/@batch.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <span>Showing @_batches.Count of @_totalCount batch jobs</span>
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary" disabled="@(_skip == 0)" @onclick="PreviousPage">Previous</button>
+                <button class="btn btn-outline-secondary" disabled="@(_batches.Count < _take)" @onclick="NextPage">Next</button>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button class="btn btn-secondary" @onclick="LoadBatchesAsync">
+                Refresh
+            </button>
+        </div>
+    }
+}
+else
+{
+    @if (_selectedBatch == null)
+    {
+        <div class="alert alert-warning">Batch job not found</div>
+        <a href="batches" class="btn btn-secondary">Back to Batch Jobs</a>
+    }
+    else
+    {
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="batches">Batch Jobs</a></li>
+                <li class="breadcrumb-item active">@_selectedBatch.Id[..8]...</li>
+            </ol>
+        </nav>
+
+        <h1>Batch Job Details</h1>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>General Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Batch ID</dt>
+                    <dd class="col-sm-9"><code>@_selectedBatch.Id</code></dd>
+
+                    <dt class="col-sm-3">OpenAI Batch ID</dt>
+                    <dd class="col-sm-9"><code>@(_selectedBatch.OpenAiBatchId ?? "-")</code></dd>
+
+                    <dt class="col-sm-3">Status</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge @GetStatusBadgeClass(_selectedBatch.Status)">
+                            @_selectedBatch.Status
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-3">Total Requests</dt>
+                    <dd class="col-sm-9">@_selectedBatch.TotalRequests</dd>
+
+                    <dt class="col-sm-3">Completed</dt>
+                    <dd class="col-sm-9">@_selectedBatch.CompletedRequests</dd>
+
+                    <dt class="col-sm-3">Failed</dt>
+                    <dd class="col-sm-9">@_selectedBatch.FailedRequests</dd>
+
+                    <dt class="col-sm-3">Created At</dt>
+                    <dd class="col-sm-9">@_selectedBatch.CreatedAt.ToString("F")</dd>
+
+                    <dt class="col-sm-3">Submitted At</dt>
+                    <dd class="col-sm-9">@(_selectedBatch.SubmittedAt?.ToString("F") ?? "-")</dd>
+
+                    <dt class="col-sm-3">Completed At</dt>
+                    <dd class="col-sm-9">@(_selectedBatch.CompletedAt?.ToString("F") ?? "-")</dd>
+                </dl>
+
+                @if (!string.IsNullOrEmpty(_selectedBatch.ErrorMessage))
+                {
+                    <div class="alert alert-danger">
+                        <strong>Error:</strong> @_selectedBatch.ErrorMessage
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Requests in this Batch</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Document</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in _batchRequests)
+                        {
+                            <tr>
+                                <td><code>@request.Id[..8]...</code></td>
+                                <td>@request.DocumentName</td>
+                                <td>
+                                    <span class="badge @GetRequestStatusBadgeClass(request.Status)">
+                                        @request.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="requests/@request.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <a href="batches" class="btn btn-secondary">Back to Batch Jobs</a>
+    }
+}
+
+@code {
+    [Parameter]
+    public string? BatchId { get; set; }
+
+    private bool _loading = true;
+    private List<BatchJob> _batches = [];
+    private BatchJob? _selectedBatch;
+    private List<DocProcessor.Core.Entities.DocumentRequest> _batchRequests = [];
+    private long _totalCount;
+    private int _skip;
+    private readonly int _take = 20;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(BatchId))
+        {
+            _selectedBatch = await BatchJobRepository.GetByIdAsync(BatchId);
+            if (_selectedBatch != null)
+            {
+                _batchRequests = (await RequestRepository.GetByBatchIdAsync(BatchId)).ToList();
+            }
+        }
+        else
+        {
+            await LoadBatchesAsync();
+        }
+        _loading = false;
+    }
+
+    private async Task LoadBatchesAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        _batches = (await BatchJobRepository.GetAllAsync(_skip, _take)).ToList();
+        _totalCount = await BatchJobRepository.GetTotalCountAsync();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task PreviousPage()
+    {
+        _skip = Math.Max(0, _skip - _take);
+        await LoadBatchesAsync();
+    }
+
+    private async Task NextPage()
+    {
+        _skip += _take;
+        await LoadBatchesAsync();
+    }
+
+    private static string GetStatusBadgeClass(BatchJobStatus status) => status switch
+    {
+        BatchJobStatus.Created => "bg-secondary",
+        BatchJobStatus.Submitted => "bg-info",
+        BatchJobStatus.Processing => "bg-primary",
+        BatchJobStatus.Completed => "bg-success",
+        BatchJobStatus.Failed => "bg-danger",
+        BatchJobStatus.PartiallyCompleted => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+
+    private static string GetRequestStatusBadgeClass(DocProcessor.Core.Enums.ProcessingStatus status) => status switch
+    {
+        DocProcessor.Core.Enums.ProcessingStatus.Pending => "bg-secondary",
+        DocProcessor.Core.Enums.ProcessingStatus.Queued => "bg-warning text-dark",
+        DocProcessor.Core.Enums.ProcessingStatus.Processing => "bg-info",
+        DocProcessor.Core.Enums.ProcessingStatus.Completed => "bg-success",
+        DocProcessor.Core.Enums.ProcessingStatus.Failed => "bg-danger",
+        DocProcessor.Core.Enums.ProcessingStatus.BatchSubmitted => "bg-primary",
+        _ => "bg-secondary"
+    };
+}
