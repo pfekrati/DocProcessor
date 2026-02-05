@@ -32,7 +32,7 @@ public class LlmService : ILlmService
         string jsonSchema,
         string? modelDeploymentId = null)
     {
-        var deploymentId = modelDeploymentId ?? _settings.DefaultDeploymentId;
+        var deploymentId = modelDeploymentId;
         
         _logger.LogInformation("Processing document with deployment {DeploymentId}", deploymentId);
 

@@ -259,7 +259,7 @@ public class BatchLlmService : IBatchLlmService
             url = "/chat/completions",
             body = new
             {
-                model = request.ModelDeploymentId ?? _settings.DefaultDeploymentId,
+                model = request.ModelDeploymentId,
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },

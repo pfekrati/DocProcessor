@@ -12,9 +12,6 @@ public class AzureOpenAISettings
     // Batch API settings
     public string BatchEndpoint { get; set; } = string.Empty;
     public string BatchApiKey { get; set; } = string.Empty;
-    public string BatchApiVersion { get; set; } = "2024-10-21";
-
-    public string DefaultDeploymentId { get; set; } = "gpt-4o";
 }
 
 public class DocumentIntelligenceSettings
