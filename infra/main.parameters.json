@@ -14,6 +14,9 @@
     "deployAzureOpenAI": {
       "value": "${DEPLOY_AZURE_OPENAI}"
     },
+    "openAILocation": {
+      "value": "${AZURE_OPENAI_LOCATION}"
+    },
     "existingOpenAIEndpoint": {
       "value": "${EXISTING_OPENAI_ENDPOINT}"
     },

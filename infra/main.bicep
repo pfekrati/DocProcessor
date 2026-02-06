@@ -16,6 +16,16 @@ param appServicePlanSku string = 'P0v3'
 @description('Set to true to deploy a new Azure OpenAI resource. Set to false to use an existing one.')
 param deployAzureOpenAI bool = true
 
+@description('Region for the Azure OpenAI resource. Must support gpt-4.1 for both Global Standard and Global Batch. Defaults to eastus2.')
+@allowed([
+  'eastus'
+  'eastus2'
+  'swedencentral'
+  'westus'
+  'westus3'
+])
+param openAILocation string = 'eastus2'
+
 @description('Endpoint of an existing Azure OpenAI resource (required when deployAzureOpenAI is false).')
 param existingOpenAIEndpoint string = ''
 
@@ -120,7 +130,7 @@ module azureOpenAI 'modules/azure-openai.bicep' = if (deployAzureOpenAI) {
   scope: rg
   params: {
     name: '${abbrs.openAIAccount}-${resourceToken}'
-    location: location
+    location: openAILocation
     tags: tags
   }
 }

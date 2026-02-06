@@ -2,8 +2,8 @@ param name string
 param location string
 param tags object = {}
 
-@allowed(['Standard_S0'])
-param sku string = 'Standard_S0'
+@allowed(['S0'])
+param sku string = 'S0'
 
 resource documentIntelligence 'Microsoft.CognitiveServices/accounts@2024-04-01-preview' = {
   name: name

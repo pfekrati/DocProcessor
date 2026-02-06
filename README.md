@@ -47,28 +47,10 @@ The solution consists of 5 projects:
 - **DocProcessor.Core** - Domain models, interfaces, DTOs, and configuration classes
 - **DocProcessor.Infrastructure** - Repository implementations, Azure service integrations (Document Intelligence, OpenAI)
 - **DocProcessor.Api** - REST API for document processing
-- **DocProcessor.Worker** - Background worker services for batch processing and result polling
+- **DocProcessor.Functions** - Azure Functions for timer-triggered batch processing and result polling
 - **DocProcessor.AdminPortal** - Blazor Server admin portal for monitoring and management
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
-│  DocProcessor   │     │   DocProcessor   │     │    DocProcessor     │
-│      Api        │────▶│      Core        │◀────│   Infrastructure    │
-└─────────────────┘     └──────────────────┘     └─────────────────────┘
-        │                        ▲                         │
-        │                        │                         │
-        ▼                        │                         ▼
-┌─────────────────┐              │              ┌─────────────────────┐
-│  DocProcessor   │──────────────┘              │   Azure Services    │
-│     Worker      │                             │  • Document Intel   │
-└─────────────────┘                             │  • OpenAI           │
-        │                                       │  • Cosmos DB        │
-        ▼                                       └─────────────────────┘
-┌─────────────────┐
-│  DocProcessor   │
-│   AdminPortal   │
-└─────────────────┘
-```
+
 
 ## ✨ Features
 
@@ -206,21 +188,36 @@ During `azd up`, you will be prompted for:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `AZURE_LOCATION` | Azure region for all resources | *(prompted)* |
+| `AZURE_LOCATION` | Azure region for all resources (App Service, Cosmos DB, etc.) | *(prompted)* |
 | `AZURE_APP_SERVICE_PLAN_SKU` | App Service Plan SKU | `P0v3` |
 | `DEPLOY_AZURE_OPENAI` | Deploy a new Azure OpenAI resource | `true` |
-| `EXISTING_OPENAI_ENDPOINT` | Endpoint of existing Azure OpenAI (if not deploying new) | `""` |
+| `AZURE_OPENAI_LOCATION` | Region for the Azure OpenAI resource (can differ from `AZURE_LOCATION`) | `eastus2` |
+| `EXISTING_OPENAI_ENDPOINT` | Endpoint of existing Azure OpenAI (when `DEPLOY_AZURE_OPENAI` is `false`) | `""` |
 | `EXISTING_OPENAI_API_KEY` | API key of existing Azure OpenAI | `""` |
 | `AZURE_OPENAI_API_VERSION` | Azure OpenAI API version for real-time calls | `2024-05-01-preview` |
 | `EXISTING_OPENAI_BATCH_ENDPOINT` | Batch endpoint of existing Azure OpenAI | `""` |
 | `EXISTING_OPENAI_BATCH_API_KEY` | Batch API key of existing Azure OpenAI | `""` |
 | `DEPLOY_DOCUMENT_INTELLIGENCE` | Deploy a new Document Intelligence resource | `true` |
-| `EXISTING_DOC_INTELLIGENCE_ENDPOINT` | Endpoint of existing Document Intelligence (if not deploying new) | `""` |
+| `EXISTING_DOC_INTELLIGENCE_ENDPOINT` | Endpoint of existing Document Intelligence (when `DEPLOY_DOCUMENT_INTELLIGENCE` is `false`) | `""` |
 | `EXISTING_DOC_INTELLIGENCE_API_KEY` | API key of existing Document Intelligence | `""` |
+
+> **Azure OpenAI region:** The `AZURE_OPENAI_LOCATION` is independent from `AZURE_LOCATION` and must be one of the regions that support gpt-4.1 for both **Global Standard** and **Global Batch** deployments:  
+> `eastus`, `eastus2`, `swedencentral`, `westus`, `westus3`
+
+#### Auto-Provisioned Model Deployments
+
+When `DEPLOY_AZURE_OPENAI` is `true`, the following model deployments are automatically created on the Azure OpenAI resource:
+
+| Deployment Name | Model | Deployment Type | Purpose |
+|-----------------|-------|-----------------|---------|
+| `gpt-4.1` | gpt-4.1 | Global Standard | Real-time chat completion |
+| `gpt-4.1-batch` | gpt-4.1 | Global Batch | Batch processing |
+
+Use the deployment name (e.g., `gpt-4.1`) as the `ModelDeploymentId` when calling the API.
 
 #### Using Existing Azure AI Resources
 
-If you already have Azure OpenAI and/or Document Intelligence resources, set the deployment flags to `false` and provide the connection details:
+If you already have Azure OpenAI and/or Document Intelligence resources deployed, set the deployment flags to `false` and provide your existing connection details:
 
 ```bash
 azd env set DEPLOY_AZURE_OPENAI false
@@ -250,7 +247,7 @@ azd up
 | **Storage Account** | Required by Azure Functions runtime |
 | **Application Insights** | Monitoring and diagnostics |
 | **Log Analytics Workspace** | Centralized logging |
-| **Azure OpenAI** *(optional)* | LLM processing |
+| **Azure OpenAI** *(optional)* | OpenAI resource with `gpt-4.1` (Global Standard) and `gpt-4.1-batch` (Global Batch) model deployments |
 | **Document Intelligence** *(optional)* | Document-to-markdown conversion |
 
 ---
