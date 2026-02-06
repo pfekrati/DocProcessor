@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "appServicePlanSku": {
+      "value": "${AZURE_APP_SERVICE_PLAN_SKU}"
+    },
+    "deployAzureOpenAI": {
+      "value": "${DEPLOY_AZURE_OPENAI}"
+    },
+    "openAILocation": {
+      "value": "${AZURE_OPENAI_LOCATION}"
+    },
+    "existingOpenAIEndpoint": {
+      "value": "${EXISTING_OPENAI_ENDPOINT}"
+    },
+    "existingOpenAIApiKey": {
+      "value": "${EXISTING_OPENAI_API_KEY}"
+    },
+    "openAIApiVersion": {
+      "value": "${AZURE_OPENAI_API_VERSION}"
+    },
+    "existingOpenAIBatchEndpoint": {
+      "value": "${EXISTING_OPENAI_BATCH_ENDPOINT}"
+    },
+    "existingOpenAIBatchApiKey": {
+      "value": "${EXISTING_OPENAI_BATCH_API_KEY}"
+    },
+    "deployDocumentIntelligence": {
+      "value": "${DEPLOY_DOCUMENT_INTELLIGENCE}"
+    },
+    "existingDocIntelligenceEndpoint": {
+      "value": "${EXISTING_DOC_INTELLIGENCE_ENDPOINT}"
+    },
+    "existingDocIntelligenceApiKey": {
+      "value": "${EXISTING_DOC_INTELLIGENCE_API_KEY}"
+    }
+  }
+}

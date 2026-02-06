@@ -47,28 +47,10 @@ The solution consists of 5 projects:
 - **DocProcessor.Core** - Domain models, interfaces, DTOs, and configuration classes
 - **DocProcessor.Infrastructure** - Repository implementations, Azure service integrations (Document Intelligence, OpenAI)
 - **DocProcessor.Api** - REST API for document processing
-- **DocProcessor.Worker** - Background worker services for batch processing and result polling
+- **DocProcessor.Functions** - Azure Functions for timer-triggered batch processing and result polling
 - **DocProcessor.AdminPortal** - Blazor Server admin portal for monitoring and management
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
-│  DocProcessor   │     │   DocProcessor   │     │    DocProcessor     │
-│      Api        │────▶│      Core        │◀────│   Infrastructure    │
-└─────────────────┘     └──────────────────┘     └─────────────────────┘
-        │                        ▲                         │
-        │                        │                         │
-        ▼                        │                         ▼
-┌─────────────────┐              │              ┌─────────────────────┐
-│  DocProcessor   │──────────────┘              │   Azure Services    │
-│     Worker      │                             │  • Document Intel   │
-└─────────────────┘                             │  • OpenAI           │
-        │                                       │  • Cosmos DB        │
-        ▼                                       └─────────────────────┘
-┌─────────────────┐
-│  DocProcessor   │
-│   AdminPortal   │
-└─────────────────┘
-```
+
 
 ## ✨ Features
 
@@ -187,7 +169,90 @@ Get the result of a completed request
 - `GET /api/admin/stats` - Get queue statistics
 - `GET /api/admin/requests/{requestId}` - Get request details
 
-## 🚀 Running the Solution
+## 🚀 Deploy to Azure
+
+### One-Click Deployment with Azure Developer CLI (azd)
+
+The fastest way to deploy the full solution to Azure:
+
+```bash
+# Install azd if you haven't already
+# https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd
+
+# Clone and deploy
+azd init
+azd up
+```
+
+During `azd up`, you will be prompted for:
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `AZURE_LOCATION` | Azure region for all resources (App Service, Cosmos DB, etc.) | *(prompted)* |
+| `AZURE_APP_SERVICE_PLAN_SKU` | App Service Plan SKU | `P0v3` |
+| `DEPLOY_AZURE_OPENAI` | Deploy a new Azure OpenAI resource | `true` |
+| `AZURE_OPENAI_LOCATION` | Region for the Azure OpenAI resource (can differ from `AZURE_LOCATION`) | `eastus2` |
+| `EXISTING_OPENAI_ENDPOINT` | Endpoint of existing Azure OpenAI (when `DEPLOY_AZURE_OPENAI` is `false`) | `""` |
+| `EXISTING_OPENAI_API_KEY` | API key of existing Azure OpenAI | `""` |
+| `AZURE_OPENAI_API_VERSION` | Azure OpenAI API version for real-time calls | `2024-05-01-preview` |
+| `EXISTING_OPENAI_BATCH_ENDPOINT` | Batch endpoint of existing Azure OpenAI | `""` |
+| `EXISTING_OPENAI_BATCH_API_KEY` | Batch API key of existing Azure OpenAI | `""` |
+| `DEPLOY_DOCUMENT_INTELLIGENCE` | Deploy a new Document Intelligence resource | `true` |
+| `EXISTING_DOC_INTELLIGENCE_ENDPOINT` | Endpoint of existing Document Intelligence (when `DEPLOY_DOCUMENT_INTELLIGENCE` is `false`) | `""` |
+| `EXISTING_DOC_INTELLIGENCE_API_KEY` | API key of existing Document Intelligence | `""` |
+
+> **Azure OpenAI region:** The `AZURE_OPENAI_LOCATION` is independent from `AZURE_LOCATION` and must be one of the regions that support gpt-4.1 for both **Global Standard** and **Global Batch** deployments:  
+> `eastus`, `eastus2`, `swedencentral`, `westus`, `westus3`
+
+#### Auto-Provisioned Model Deployments
+
+When `DEPLOY_AZURE_OPENAI` is `true`, the following model deployments are automatically created on the Azure OpenAI resource:
+
+| Deployment Name | Model | Deployment Type | Purpose |
+|-----------------|-------|-----------------|---------|
+| `gpt-4.1` | gpt-4.1 | Global Standard | Real-time chat completion |
+| `gpt-4.1-batch` | gpt-4.1 | Global Batch | Batch processing |
+
+Use the deployment name (e.g., `gpt-4.1`) as the `ModelDeploymentId` when calling the API.
+
+#### Using Existing Azure AI Resources
+
+If you already have Azure OpenAI and/or Document Intelligence resources deployed, set the deployment flags to `false` and provide your existing connection details:
+
+```bash
+azd env set DEPLOY_AZURE_OPENAI false
+azd env set EXISTING_OPENAI_ENDPOINT "https://your-openai.openai.azure.com/"
+azd env set EXISTING_OPENAI_API_KEY "your-key"
+azd env set AZURE_OPENAI_API_VERSION "2024-05-01-preview"
+azd env set EXISTING_OPENAI_BATCH_ENDPOINT "https://your-batch-openai.openai.azure.com/"
+azd env set EXISTING_OPENAI_BATCH_API_KEY "your-batch-key"
+
+azd env set DEPLOY_DOCUMENT_INTELLIGENCE false
+azd env set EXISTING_DOC_INTELLIGENCE_ENDPOINT "https://your-doc-intel.cognitiveservices.azure.com/"
+azd env set EXISTING_DOC_INTELLIGENCE_API_KEY "your-key"
+
+azd up
+```
+
+### Deployed Resources
+
+| Resource | Description |
+|----------|-------------|
+| **Resource Group** | `rg-{env-name}` |
+| **Cosmos DB** (MongoDB API, Serverless) | Database with `Requests` and `BatchJobs` collections |
+| **App Service Plan** | Hosts all three apps (default SKU: P0v3) |
+| **Web App** (Admin Portal) | Blazor Server admin dashboard |
+| **API App** | REST API for document processing |
+| **Function App** | Timer-triggered batch processing functions |
+| **Storage Account** | Required by Azure Functions runtime |
+| **Application Insights** | Monitoring and diagnostics |
+| **Log Analytics Workspace** | Centralized logging |
+| **Azure OpenAI** *(optional)* | OpenAI resource with `gpt-4.1` (Global Standard) and `gpt-4.1-batch` (Global Batch) model deployments |
+| **Document Intelligence** *(optional)* | Document-to-markdown conversion |
+
+---
+
+## 🖥️ Running Locally
 
 ### Prerequisites
 - .NET 8.0 SDK
@@ -195,7 +260,7 @@ Get the result of a completed request
 - Azure Document Intelligence resource
 - Azure OpenAI resource
 
-### Running Locally
+### Setup
 
 1. Update configuration in all `appsettings.json` files
 
@@ -205,10 +270,10 @@ cd src/DocProcessor.Api
 dotnet run
 ```
 
-3. Run the Worker (for batch processing):
+3. Run the Functions (for batch processing):
 ```bash
-cd src/DocProcessor.Worker
-dotnet run
+cd src/DocProcessor.Functions
+func start
 ```
 
 4. Run the Admin Portal:

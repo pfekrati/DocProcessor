@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: doc-processor
+metadata:
+  template: doc-processor
+
+services:
+  admin-portal:
+    project: src/DocProcessor.AdminPortal
+    host: appservice
+    language: csharp
+
+  api:
+    project: src/DocProcessor.Api
+    host: appservice
+    language: csharp
+
+  functions:
+    project: src/DocProcessor.Functions
+    host: function
+    language: csharp

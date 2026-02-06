@@ -1,0 +1,12 @@
+{
+  "appServicePlan": "asp",
+  "cosmosDBAccount": "cosmos",
+  "functionApp": "func",
+  "logAnalyticsWorkspace": "log",
+  "applicationInsights": "appi",
+  "storageAccount": "st",
+  "webApp": "app",
+  "cognitiveServicesAccount": "cog",
+  "openAIAccount": "oai",
+  "documentIntelligence": "di"
+}
