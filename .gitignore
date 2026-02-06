@@ -44,3 +44,4 @@ appsettings.Production.json
 /RallyChant.Api/appsettings.json
 /RallyChant.Consumer/wwwroot/appsettings.json
 **/appsettings.json
+**/local.settings.json

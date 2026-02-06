@@ -1,0 +1,21 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "BatchSubmitSchedule": "0 */15 * * * *",
+    "BatchPollingSchedule": "0 */5 * * * *",
+    "AzureOpenAI:Endpoint": "",
+    "AzureOpenAI:ApiKey": "",
+    "AzureOpenAI:ApiVersion": "2024-05-01-preview",
+    "AzureOpenAI:BatchEndpoint": "",
+    "AzureOpenAI:BatchApiKey": "",
+    "DocumentIntelligence:Endpoint": "",
+    "DocumentIntelligence:ApiKey": "",
+    "CosmosDb:ConnectionString": "mongodb://",
+    "CosmosDb:DatabaseName": "DocProcessor",
+    "CosmosDb:RequestsCollectionName": "Requests",
+    "CosmosDb:BatchJobsCollectionName": "BatchJobs"
+
+  }
+}
