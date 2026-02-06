@@ -189,8 +189,6 @@ Get the result of a completed request
 
 ## 🚀 Deploy to Azure
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fpfekrati%2FDocProcessor%2Fmain%2Finfra%2Fmain.bicep)
-
 ### One-Click Deployment with Azure Developer CLI (azd)
 
 The fastest way to deploy the full solution to Azure:
