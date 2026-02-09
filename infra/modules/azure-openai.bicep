@@ -67,5 +67,6 @@ resource batchDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-
 output endpoint string = openAI.properties.endpoint
 output apiKey string = openAI.listKeys().key1
 output name string = openAI.name
+output id string = openAI.id
 output realtimeDeploymentName string = realtimeDeployment.name
 output batchDeploymentName string = batchDeployment.name

@@ -1,6 +1,7 @@
 using System.ClientModel;
 using System.Text.Json;
 using Azure.AI.OpenAI;
+using Azure.Identity;
 using DocProcessor.Core.Configuration;
 using DocProcessor.Core.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -21,9 +22,19 @@ public class LlmService : ILlmService
     {
         _settings = settings.Value;
         _logger = logger;
-        _client = new AzureOpenAIClient(
-            new Uri(_settings.Endpoint),
-            new ApiKeyCredential(_settings.ApiKey));
+
+        if (_settings.UseManagedIdentity)
+        {
+            _client = new AzureOpenAIClient(
+                new Uri(_settings.Endpoint),
+                new DefaultAzureCredential());
+        }
+        else
+        {
+            _client = new AzureOpenAIClient(
+                new Uri(_settings.Endpoint),
+                new ApiKeyCredential(_settings.ApiKey));
+        }
     }
 
     public async Task<string> ProcessDocumentAsync(

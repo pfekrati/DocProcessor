@@ -54,6 +54,10 @@ param existingDocIntelligenceEndpoint string = ''
 @description('API key of an existing Document Intelligence resource (required when deployDocumentIntelligence is false).')
 param existingDocIntelligenceApiKey string = ''
 
+// ── Managed Identity ─────────────────────────────────────────────────────────
+@description('Set to true to enable system-assigned managed identity on all compute resources and use RBAC instead of access keys for Cosmos DB, Azure OpenAI, and Document Intelligence.')
+param useManagedIdentity bool = false
+
 // ── Variables ────────────────────────────────────────────────────────────────
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
@@ -165,6 +169,7 @@ module adminPortal 'modules/web-app.bicep' = {
     appServicePlanId: appServicePlan.outputs.id
     appInsightsConnectionString: appInsights.outputs.connectionString
     cosmosDbConnectionString: cosmosDb.outputs.connectionString
+    cosmosDbAccountEndpoint: cosmosDb.outputs.accountEndpoint
     openAIEndpoint: openAIEndpoint
     openAIApiKey: openAIApiKey
     openAIApiVersion: openAIApiVersion
@@ -172,6 +177,7 @@ module adminPortal 'modules/web-app.bicep' = {
     openAIBatchApiKey: openAIBatchApiKey
     docIntelligenceEndpoint: docIntelligenceEndpoint
     docIntelligenceApiKey: docIntelligenceApiKey
+    useManagedIdentity: useManagedIdentity
   }
 }
 
@@ -186,6 +192,7 @@ module apiApp 'modules/api-app.bicep' = {
     appServicePlanId: appServicePlan.outputs.id
     appInsightsConnectionString: appInsights.outputs.connectionString
     cosmosDbConnectionString: cosmosDb.outputs.connectionString
+    cosmosDbAccountEndpoint: cosmosDb.outputs.accountEndpoint
     openAIEndpoint: openAIEndpoint
     openAIApiKey: openAIApiKey
     openAIApiVersion: openAIApiVersion
@@ -193,6 +200,7 @@ module apiApp 'modules/api-app.bicep' = {
     openAIBatchApiKey: openAIBatchApiKey
     docIntelligenceEndpoint: docIntelligenceEndpoint
     docIntelligenceApiKey: docIntelligenceApiKey
+    useManagedIdentity: useManagedIdentity
   }
 }
 
@@ -209,6 +217,7 @@ module functionApp 'modules/function-app.bicep' = {
     appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
     storageAccountConnectionString: storageAccount.outputs.connectionString
     cosmosDbConnectionString: cosmosDb.outputs.connectionString
+    cosmosDbAccountEndpoint: cosmosDb.outputs.accountEndpoint
     openAIEndpoint: openAIEndpoint
     openAIApiKey: openAIApiKey
     openAIApiVersion: openAIApiVersion
@@ -216,6 +225,44 @@ module functionApp 'modules/function-app.bicep' = {
     openAIBatchApiKey: openAIBatchApiKey
     docIntelligenceEndpoint: docIntelligenceEndpoint
     docIntelligenceApiKey: docIntelligenceApiKey
+    useManagedIdentity: useManagedIdentity
+  }
+}
+
+// ── Role Assignments (conditional) ───────────────────────────────────────────
+module adminPortalRoles 'modules/role-assignments.bicep' = if (useManagedIdentity) {
+  name: 'admin-portal-roles'
+  scope: rg
+  dependsOn: [adminPortal]
+  params: {
+    principalId: useManagedIdentity ? adminPortal.outputs.principalId : ''
+    openAIAccountId: deployAzureOpenAI ? azureOpenAI.outputs.id : ''
+    docIntelligenceAccountId: deployDocumentIntelligence ? documentIntelligence.outputs.id : ''
+    cosmosDbAccountId: cosmosDb.outputs.id
+  }
+}
+
+module apiAppRoles 'modules/role-assignments.bicep' = if (useManagedIdentity) {
+  name: 'api-app-roles'
+  scope: rg
+  dependsOn: [apiApp]
+  params: {
+    principalId: useManagedIdentity ? apiApp.outputs.principalId : ''
+    openAIAccountId: deployAzureOpenAI ? azureOpenAI.outputs.id : ''
+    docIntelligenceAccountId: deployDocumentIntelligence ? documentIntelligence.outputs.id : ''
+    cosmosDbAccountId: cosmosDb.outputs.id
+  }
+}
+
+module functionAppRoles 'modules/role-assignments.bicep' = if (useManagedIdentity) {
+  name: 'function-app-roles'
+  scope: rg
+  dependsOn: [functionApp]
+  params: {
+    principalId: useManagedIdentity ? functionApp.outputs.principalId : ''
+    openAIAccountId: deployAzureOpenAI ? azureOpenAI.outputs.id : ''
+    docIntelligenceAccountId: deployDocumentIntelligence ? documentIntelligence.outputs.id : ''
+    cosmosDbAccountId: cosmosDb.outputs.id
   }
 }
 

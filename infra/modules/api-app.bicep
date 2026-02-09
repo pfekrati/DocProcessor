@@ -5,6 +5,7 @@ param appServicePlanId string
 param appInsightsConnectionString string
 
 param cosmosDbConnectionString string
+param cosmosDbAccountEndpoint string = ''
 param openAIEndpoint string
 param openAIApiKey string
 param openAIApiVersion string = '2024-05-01-preview'
@@ -12,11 +13,15 @@ param openAIBatchEndpoint string
 param openAIBatchApiKey string
 param docIntelligenceEndpoint string
 param docIntelligenceApiKey string
+param useManagedIdentity bool = false
 
 resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
   name: name
   location: location
   tags: union(tags, { 'azd-service-name': 'api' })
+  identity: {
+    type: useManagedIdentity ? 'SystemAssigned' : 'None'
+  }
   properties: {
     serverFarmId: appServicePlanId
     httpsOnly: true
@@ -35,7 +40,7 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'AzureOpenAI__ApiKey'
-          value: openAIApiKey
+          value: useManagedIdentity ? '' : openAIApiKey
         }
         {
           name: 'AzureOpenAI__ApiVersion'
@@ -47,7 +52,11 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'AzureOpenAI__BatchApiKey'
-          value: openAIBatchApiKey
+          value: useManagedIdentity ? '' : openAIBatchApiKey
+        }
+        {
+          name: 'AzureOpenAI__UseManagedIdentity'
+          value: string(useManagedIdentity)
         }
         {
           name: 'DocumentIntelligence__Endpoint'
@@ -55,11 +64,23 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'DocumentIntelligence__ApiKey'
-          value: docIntelligenceApiKey
+          value: useManagedIdentity ? '' : docIntelligenceApiKey
+        }
+        {
+          name: 'DocumentIntelligence__UseManagedIdentity'
+          value: string(useManagedIdentity)
         }
         {
           name: 'CosmosDb__ConnectionString'
-          value: cosmosDbConnectionString
+          value: useManagedIdentity ? '' : cosmosDbConnectionString
+        }
+        {
+          name: 'CosmosDb__AccountEndpoint'
+          value: useManagedIdentity ? cosmosDbAccountEndpoint : ''
+        }
+        {
+          name: 'CosmosDb__UseManagedIdentity'
+          value: string(useManagedIdentity)
         }
         {
           name: 'CosmosDb__DatabaseName'
@@ -97,3 +118,4 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
 output name string = apiApp.name
 output defaultHostName string = apiApp.properties.defaultHostName
 output uri string = 'https://${apiApp.properties.defaultHostName}'
+output principalId string = useManagedIdentity ? apiApp.identity.principalId : ''

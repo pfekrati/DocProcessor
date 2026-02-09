@@ -1,5 +1,6 @@
 using Azure;
 using Azure.AI.DocumentIntelligence;
+using Azure.Identity;
 using DocProcessor.Core.Configuration;
 using DocProcessor.Core.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -17,9 +18,16 @@ public class DocumentIntelligenceService : IDocumentIntelligenceService
         ILogger<DocumentIntelligenceService> logger)
     {
         _logger = logger;
-        _client = new DocumentIntelligenceClient(
-            new Uri(settings.Value.Endpoint),
-            new AzureKeyCredential(settings.Value.ApiKey));
+        var endpoint = new Uri(settings.Value.Endpoint);
+
+        if (settings.Value.UseManagedIdentity)
+        {
+            _client = new DocumentIntelligenceClient(endpoint, new DefaultAzureCredential());
+        }
+        else
+        {
+            _client = new DocumentIntelligenceClient(endpoint, new AzureKeyCredential(settings.Value.ApiKey));
+        }
     }
 
     public async Task<string> ConvertToMarkdownAsync(byte[] documentContent, string fileName)

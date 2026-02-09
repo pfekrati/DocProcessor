@@ -1,3 +1,5 @@
+using Azure.Core;
+using Azure.Identity;
 using DocProcessor.Core.Configuration;
 using DocProcessor.Core.Entities;
 using DocProcessor.Core.Enums;
@@ -18,11 +20,27 @@ public class DocumentRequestRepository : IDocumentRequestRepository
         ILogger<DocumentRequestRepository> logger)
     {
         _logger = logger;
-        var client = new MongoClient(settings.Value.ConnectionString);
+        var client = CreateMongoClient(settings.Value);
         var database = client.GetDatabase(settings.Value.DatabaseName);
         _collection = database.GetCollection<DocumentRequest>(settings.Value.RequestsCollectionName);
-        
+
         CreateIndexes();
+    }
+
+    private static MongoClient CreateMongoClient(CosmosDbSettings settings)
+    {
+        if (!settings.UseManagedIdentity)
+            return new MongoClient(settings.ConnectionString);
+
+        var credential = new DefaultAzureCredential();
+        var mongoSettings = MongoClientSettings.FromUrl(new MongoUrl(settings.AccountEndpoint));
+        mongoSettings.UseTls = true;
+        mongoSettings.RetryWrites = false;
+        mongoSettings.Credential = MongoCredential.CreateOidcCredential("azure", null)
+            .WithMechanismProperty("ENVIRONMENT", "azure")
+            .WithMechanismProperty("TOKEN_RESOURCE", "https://cosmos.azure.com");
+
+        return new MongoClient(mongoSettings);
     }
 
     private void CreateIndexes()

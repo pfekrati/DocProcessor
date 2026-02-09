@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Azure.Core;
+using Azure.Identity;
 using DocProcessor.Core.Configuration;
 using DocProcessor.Core.Entities;
 using DocProcessor.Core.Interfaces;
@@ -14,6 +16,7 @@ public class BatchLlmService : IBatchLlmService
     private readonly HttpClient _httpClient;
     private readonly AzureOpenAISettings _settings;
     private readonly ILogger<BatchLlmService> _logger;
+    private readonly TokenCredential? _credential;
 
     public BatchLlmService(
         HttpClient httpClient,
@@ -24,7 +27,28 @@ public class BatchLlmService : IBatchLlmService
         _logger = logger;
         _httpClient = httpClient;
         _httpClient.BaseAddress = new Uri(_settings.BatchEndpoint);
-        _httpClient.DefaultRequestHeaders.Add("api-key", _settings.BatchApiKey);
+
+        if (_settings.UseManagedIdentity)
+        {
+            _credential = new DefaultAzureCredential();
+        }
+        else
+        {
+            _httpClient.DefaultRequestHeaders.Add("api-key", _settings.BatchApiKey);
+        }
+    }
+
+    private async Task EnsureBearerTokenAsync()
+    {
+        if (_credential is null)
+            return;
+
+        var tokenResult = await _credential.GetTokenAsync(
+            new TokenRequestContext(["https://cognitiveservices.azure.com/.default"]),
+            CancellationToken.None);
+
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", tokenResult.Token);
     }
 
     public async Task<string> SubmitBatchAsync(IEnumerable<DocumentRequest> requests)
@@ -33,6 +57,8 @@ public class BatchLlmService : IBatchLlmService
 
         try
         {
+            await EnsureBearerTokenAsync();
+
             // Create JSONL content for batch
             var jsonlContent = new StringBuilder();
             foreach (var request in requests)
@@ -90,6 +116,8 @@ public class BatchLlmService : IBatchLlmService
     {
         try
         {
+            await EnsureBearerTokenAsync();
+
             var response = await _httpClient.GetAsync(
                 $"openai/v1/batches/{batchId}");
 
@@ -123,6 +151,8 @@ public class BatchLlmService : IBatchLlmService
     {
         try
         {
+            await EnsureBearerTokenAsync();
+
             // Get batch info to find output file
             var batchResponse = await _httpClient.GetAsync(
                 $"openai/v1/batches/{batchId}");
