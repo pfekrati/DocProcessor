@@ -67,4 +67,6 @@ resource batchJobsCollection 'Microsoft.DocumentDB/databaseAccounts/mongodbDatab
 }
 
 output connectionString string = 'mongodb://${cosmosDbAccount.name}:${cosmosDbAccount.listKeys().primaryMasterKey}@${cosmosDbAccount.name}.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${cosmosDbAccount.name}@'
+output accountEndpoint string = 'mongodb://${cosmosDbAccount.name}.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@${cosmosDbAccount.name}@'
 output name string = cosmosDbAccount.name
+output id string = cosmosDbAccount.id

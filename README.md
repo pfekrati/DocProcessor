@@ -86,17 +86,21 @@ Update `appsettings.json` in each project with your Azure credentials:
     "ApiKey": "your-api-key",
     "ApiVersion": "2024-05-01-preview",
     "BatchEndpoint": "https://your-openai-resource.cognitiveservices.azure.com/",
-    "BatchApiKey": "your-batch-api-key"
+    "BatchApiKey": "your-batch-api-key",
+    "UseManagedIdentity": false
   },
   "DocumentIntelligence": {
     "Endpoint": "https://your-doc-intelligence.cognitiveservices.azure.com/",
-    "ApiKey": "your-api-key"
+    "ApiKey": "your-api-key",
+    "UseManagedIdentity": false
   },
   "CosmosDb": {
     "ConnectionString": "mongodb://your-cosmos-account:your-key@your-cosmos-account.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@your-cosmos-account@",
+    "AccountEndpoint": "mongodb://your-cosmos-account.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@your-cosmos-account@",
     "DatabaseName": "DocProcessor",
     "RequestsCollectionName": "Requests",
-    "BatchJobsCollectionName": "BatchJobs"
+    "BatchJobsCollectionName": "BatchJobs",
+    "UseManagedIdentity": false
   },
   "BatchProcessing": {
     "QueueSizeThreshold": 100,
@@ -112,16 +116,20 @@ Update `appsettings.json` in each project with your Azure credentials:
 | Section | Setting | Description |
 |---------|---------|-------------|
 | **AzureOpenAI** | `Endpoint` | Azure OpenAI service endpoint for real-time processing |
-| | `ApiKey` | API key for Azure OpenAI |
+| | `ApiKey` | API key for Azure OpenAI (ignored when `UseManagedIdentity` is `true`) |
 | | `ApiVersion` | API version (e.g., `2024-05-01-preview`) |
 | | `BatchEndpoint` | Endpoint for batch API operations |
-| | `BatchApiKey` | API key for batch operations |
+| | `BatchApiKey` | API key for batch operations (ignored when `UseManagedIdentity` is `true`) |
+| | `UseManagedIdentity` | Set to `true` to authenticate with managed identity instead of API keys |
 | **DocumentIntelligence** | `Endpoint` | Azure Document Intelligence endpoint |
-| | `ApiKey` | API key for Document Intelligence |
-| **CosmosDb** | `ConnectionString` | MongoDB connection string for Cosmos DB |
+| | `ApiKey` | API key for Document Intelligence (ignored when `UseManagedIdentity` is `true`) |
+| | `UseManagedIdentity` | Set to `true` to authenticate with managed identity instead of API keys |
+| **CosmosDb** | `ConnectionString` | MongoDB connection string for Cosmos DB (ignored when `UseManagedIdentity` is `true`) |
+| | `AccountEndpoint` | MongoDB endpoint without credentials, used when `UseManagedIdentity` is `true` |
 | | `DatabaseName` | Database name |
 | | `RequestsCollectionName` | Collection for document requests |
 | | `BatchJobsCollectionName` | Collection for batch job tracking |
+| | `UseManagedIdentity` | Set to `true` to authenticate with managed identity via OIDC instead of connection string keys |
 | **BatchProcessing** | `QueueSizeThreshold` | Number of queued items to trigger batch submission |
 | | `ProcessingIntervalMinutes` | Interval for checking queue |
 | | `MaxRetryCount` | Maximum retry attempts for failed operations |
@@ -191,7 +199,7 @@ During `azd up`, you will be prompted for:
 | `AZURE_LOCATION` | Azure region for all resources (App Service, Cosmos DB, etc.) | *(prompted)* |
 | `AZURE_APP_SERVICE_PLAN_SKU` | App Service Plan SKU | `P0v3` |
 | `DEPLOY_AZURE_OPENAI` | Deploy a new Azure OpenAI resource | `true` |
-| `AZURE_OPENAI_LOCATION` | Region for the Azure OpenAI resource (can differ from `AZURE_LOCATION`) | `eastus2` |
+| `AZURE_OPENAI_LOCATION` | Region for the Azure OpenAI resource (can differ from `AZURE_LOCATION`) | *(prompted)* |
 | `EXISTING_OPENAI_ENDPOINT` | Endpoint of existing Azure OpenAI (when `DEPLOY_AZURE_OPENAI` is `false`) | `""` |
 | `EXISTING_OPENAI_API_KEY` | API key of existing Azure OpenAI | `""` |
 | `AZURE_OPENAI_API_VERSION` | Azure OpenAI API version for real-time calls | `2024-05-01-preview` |
@@ -200,6 +208,7 @@ During `azd up`, you will be prompted for:
 | `DEPLOY_DOCUMENT_INTELLIGENCE` | Deploy a new Document Intelligence resource | `true` |
 | `EXISTING_DOC_INTELLIGENCE_ENDPOINT` | Endpoint of existing Document Intelligence (when `DEPLOY_DOCUMENT_INTELLIGENCE` is `false`) | `""` |
 | `EXISTING_DOC_INTELLIGENCE_API_KEY` | API key of existing Document Intelligence | `""` |
+| `USE_MANAGED_IDENTITY` | Enable system-assigned managed identity and RBAC for all services instead of access keys | `false` |
 
 > **Azure OpenAI region:** The `AZURE_OPENAI_LOCATION` is independent from `AZURE_LOCATION` and must be one of the regions that support gpt-4.1 for both **Global Standard** and **Global Batch** deployments:  
 > `eastus`, `eastus2`, `swedencentral`, `westus`, `westus3`
@@ -233,6 +242,28 @@ azd env set EXISTING_DOC_INTELLIGENCE_API_KEY "your-key"
 
 azd up
 ```
+
+#### Using Managed Identity (Recommended for Production)
+
+Instead of using access keys, you can authenticate all services using system-assigned managed identity with Azure RBAC. This eliminates the need to manage secrets and is the recommended approach for production deployments.
+
+```bash
+azd env set USE_MANAGED_IDENTITY true
+azd up
+```
+
+When enabled, `azd up` will:
+
+1. **Enable system-assigned managed identity** on the Admin Portal, API App, and Function App
+2. **Create RBAC role assignments** for each identity:
+   - **Cognitive Services OpenAI User** on the Azure OpenAI resource
+   - **Cognitive Services User** on the Document Intelligence resource
+   - **DocumentDB Account Contributor** on the Cosmos DB account
+3. **Configure app settings** to use `DefaultAzureCredential` and clear all API key / connection string values
+
+The application code automatically detects the `UseManagedIdentity` setting and switches from key-based authentication to `DefaultAzureCredential` (from `Azure.Identity`), which works seamlessly with both managed identity in Azure and your Azure CLI login during local development.
+
+> **Local development with managed identity:** When `UseManagedIdentity` is `true` locally, `DefaultAzureCredential` will use your `az login` session. Ensure your Azure AD account has the same RBAC roles listed above on the target resources.
 
 ### Deployed Resources
 

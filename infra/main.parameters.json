@@ -40,6 +40,9 @@
     },
     "existingDocIntelligenceApiKey": {
       "value": "${EXISTING_DOC_INTELLIGENCE_API_KEY}"
+    },
+    "useManagedIdentity": {
+      "value": "${USE_MANAGED_IDENTITY}"
     }
   }
 }

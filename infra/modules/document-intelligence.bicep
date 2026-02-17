@@ -22,3 +22,4 @@ resource documentIntelligence 'Microsoft.CognitiveServices/accounts@2024-04-01-p
 output endpoint string = documentIntelligence.properties.endpoint
 output apiKey string = documentIntelligence.listKeys().key1
 output name string = documentIntelligence.name
+output id string = documentIntelligence.id
