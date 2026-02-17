@@ -29,7 +29,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: appServicePlanId
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'DOTNET-ISOLATED|8.0'
+      linuxFxVersion: 'DOTNET-ISOLATED|10.0'
       alwaysOn: true
       ftpsState: 'Disabled'
       appSettings: [

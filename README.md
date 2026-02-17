@@ -1,10 +1,10 @@
 # DocProcessor
 
-A comprehensive .NET 8 document processing solution that leverages Azure AI services (Azure Document Intelligence and Azure OpenAI) to extract structured data from documents. The system supports both real-time and batch processing modes, making it suitable for various document processing workloads from single document extraction to high-volume batch operations.
+A comprehensive .NET 10 document processing solution that leverages Azure AI services (Azure Document Intelligence and Azure OpenAI) to extract structured data from documents. The system supports both real-time and batch processing modes, making it suitable for various document processing workloads from single document extraction to high-volume batch operations.
 
 ## 🛠️ Technology Stack
 
-- **.NET 8** - Runtime and framework
+- **.NET 10** - Runtime and framework
 - **Blazor Server** - Admin portal UI
 - **Azure Cosmos DB** (MongoDB API) - Document storage
 - **Azure Document Intelligence** - Document-to-markdown conversion
@@ -286,7 +286,7 @@ The application code automatically detects the `UseManagedIdentity` setting and 
 ## 🖥️ Running Locally
 
 ### Prerequisites
-- .NET 8.0 SDK
+- .NET 10.0 SDK
 - Azure Cosmos DB account (MongoDB API)
 - Azure Document Intelligence resource
 - Azure OpenAI resource
