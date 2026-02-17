@@ -113,7 +113,7 @@ public class DocumentProcessingService : IDocumentProcessingService
                 ModelDeploymentId = request.ModelDeploymentId,
                 ProcessingMode = ProcessingMode.Batch,
                 CallbackUrl = request.CallbackUrl,
-                Status = ProcessingStatus.Pending,
+                Status = ProcessingStatus.Queued,
                 DocumentType = DetermineDocumentType(request.DocumentName)
             };
 
@@ -124,7 +124,7 @@ public class DocumentProcessingService : IDocumentProcessingService
             return new DocumentProcessingResponse
             {
                 RequestId = documentRequest.Id,
-                Status = ProcessingStatus.Pending,
+                Status = ProcessingStatus.Queued,
                 CreatedAt = documentRequest.CreatedAt
             };
         }
