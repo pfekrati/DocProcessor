@@ -16,7 +16,7 @@ param appServicePlanSku string = 'P0v3'
 @description('Set to true to deploy a new Azure OpenAI resource. Set to false to use an existing one.')
 param deployAzureOpenAI bool = true
 
-@description('Region for the Azure OpenAI resource. Must support gpt-4.1 for both Global Standard and Global Batch. Defaults to eastus2.')
+@description('Region for the Azure OpenAI resource. Must support gpt-4.1 for both Global Standard and Global Batch.')
 @allowed([
   'eastus'
   'eastus2'
@@ -24,7 +24,7 @@ param deployAzureOpenAI bool = true
   'westus'
   'westus3'
 ])
-param openAILocation string = 'eastus2'
+param openAILocation string
 
 @description('Endpoint of an existing Azure OpenAI resource (required when deployAzureOpenAI is false).')
 param existingOpenAIEndpoint string = ''

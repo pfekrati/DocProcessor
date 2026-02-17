@@ -199,7 +199,7 @@ During `azd up`, you will be prompted for:
 | `AZURE_LOCATION` | Azure region for all resources (App Service, Cosmos DB, etc.) | *(prompted)* |
 | `AZURE_APP_SERVICE_PLAN_SKU` | App Service Plan SKU | `P0v3` |
 | `DEPLOY_AZURE_OPENAI` | Deploy a new Azure OpenAI resource | `true` |
-| `AZURE_OPENAI_LOCATION` | Region for the Azure OpenAI resource (can differ from `AZURE_LOCATION`) | `eastus2` |
+| `AZURE_OPENAI_LOCATION` | Region for the Azure OpenAI resource (can differ from `AZURE_LOCATION`) | *(prompted)* |
 | `EXISTING_OPENAI_ENDPOINT` | Endpoint of existing Azure OpenAI (when `DEPLOY_AZURE_OPENAI` is `false`) | `""` |
 | `EXISTING_OPENAI_API_KEY` | API key of existing Azure OpenAI | `""` |
 | `AZURE_OPENAI_API_VERSION` | Azure OpenAI API version for real-time calls | `2024-05-01-preview` |
