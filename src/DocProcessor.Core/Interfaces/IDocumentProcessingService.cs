@@ -9,4 +9,5 @@ public interface IDocumentProcessingService
     Task<DocumentProcessingResponse> QueueForBatchProcessingAsync(DocumentProcessingRequest request);
     Task<RequestStatusResponse?> GetRequestStatusAsync(string requestId);
     Task<DocumentRequest?> GetRequestAsync(string requestId);
+    Task ProcessBatchQueueAsync(List<DocumentRequest>? pendingRequests = null);
 }

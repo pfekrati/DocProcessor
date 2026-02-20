@@ -15,6 +15,7 @@ namespace DocProcessor.Functions;
 public class BatchSubmitFunction
 {
     private readonly IDocumentRequestRepository _requestRepository;
+    private readonly IDocumentProcessingService _documentProcessingService;
     private readonly IBatchJobRepository _batchJobRepository;
     private readonly IBatchLlmService _batchLlmService;
     private readonly IDocumentIntelligenceService _documentIntelligenceService;
@@ -27,7 +28,8 @@ public class BatchSubmitFunction
         IBatchLlmService batchLlmService,
         IDocumentIntelligenceService documentIntelligenceService,
         IOptions<BatchProcessingSettings> settings,
-        ILogger<BatchSubmitFunction> logger)
+        ILogger<BatchSubmitFunction> logger,
+        IDocumentProcessingService documentProcessingService)
     {
         _requestRepository = requestRepository;
         _batchJobRepository = batchJobRepository;
@@ -35,6 +37,7 @@ public class BatchSubmitFunction
         _documentIntelligenceService = documentIntelligenceService;
         _settings = settings.Value;
         _logger = logger;
+        _documentProcessingService = documentProcessingService;
     }
 
     [Function("BatchSubmitFunction")]
@@ -44,11 +47,7 @@ public class BatchSubmitFunction
 
         try
         {
-            // First, process pending requests to convert them to markdown
-            await ProcessPendingRequestsAsync();
-
-            // Then, submit queued requests to batch API
-            await ProcessBatchQueueAsync();
+            await _documentProcessingService.ProcessBatchQueueAsync();
         }
         catch (Exception ex)
         {
@@ -62,7 +61,7 @@ public class BatchSubmitFunction
 
     private async Task ProcessPendingRequestsAsync()
     {
-        var pendingRequests = (await _requestRepository.GetByStatusAsync(ProcessingStatus.Pending)).ToList();
+        var pendingRequests = (await _requestRepository.GetByStatusAsync(ProcessingStatus.Queued)).ToList();
 
         if (pendingRequests.Count == 0)
         {

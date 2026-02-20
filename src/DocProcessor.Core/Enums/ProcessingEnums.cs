@@ -13,7 +13,8 @@ public enum ProcessingStatus
     Processing = 2,
     Completed = 3,
     Failed = 4,
-    BatchSubmitted = 5
+    BatchSubmitted = 5,
+    Batched = 6
 }
 
 public enum DocumentType

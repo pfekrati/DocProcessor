@@ -15,7 +15,8 @@
     "CosmosDb:ConnectionString": "mongodb://",
     "CosmosDb:DatabaseName": "DocProcessor",
     "CosmosDb:RequestsCollectionName": "Requests",
-    "CosmosDb:BatchJobsCollectionName": "BatchJobs"
+    "CosmosDb:BatchJobsCollectionName": "BatchJobs",
+    "BatchProcessing:QueueSizeThreshold": 100
 
   }
 }

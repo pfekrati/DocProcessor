@@ -1,27 +1,38 @@
+using DocProcessor.Core.Configuration;
 using DocProcessor.Core.DTOs;
 using DocProcessor.Core.Entities;
 using DocProcessor.Core.Enums;
 using DocProcessor.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DocProcessor.Infrastructure.Services;
 
 public class DocumentProcessingService : IDocumentProcessingService
 {
     private readonly IDocumentRequestRepository _requestRepository;
+    private readonly IBatchJobRepository _batchJobRepository;
     private readonly IDocumentIntelligenceService _documentIntelligenceService;
     private readonly ILlmService _llmService;
+    private readonly IBatchLlmService _batchLlmService;
+    private readonly BatchProcessingSettings _settings;
     private readonly ILogger<DocumentProcessingService> _logger;
 
     public DocumentProcessingService(
         IDocumentRequestRepository requestRepository,
+        IBatchJobRepository batchJobRepository,
         IDocumentIntelligenceService documentIntelligenceService,
         ILlmService llmService,
+        IBatchLlmService batchLlmService,
+        IOptions<BatchProcessingSettings> settings,
         ILogger<DocumentProcessingService> logger)
     {
         _requestRepository = requestRepository;
+        _batchJobRepository = batchJobRepository;
         _documentIntelligenceService = documentIntelligenceService;
         _llmService = llmService;
+        _batchLlmService = batchLlmService;
+        _settings = settings.Value;
         _logger = logger;
     }
 
@@ -49,9 +60,9 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             // Convert document to markdown
             var markdownContent = await _documentIntelligenceService.ConvertToMarkdownAsync(
-                request.DocumentContent, 
+                request.DocumentContent,
                 request.DocumentName);
-            
+
             documentRequest.MarkdownContent = markdownContent;
 
             // Process with LLM
@@ -121,6 +132,8 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             _logger.LogInformation("Successfully queued batch request {RequestId}", documentRequest.Id);
 
+            _ = SubmitBatchIfThresholdMetAsync();
+
             return new DocumentProcessingResponse
             {
                 RequestId = documentRequest.Id,
@@ -135,10 +148,120 @@ public class DocumentProcessingService : IDocumentProcessingService
         }
     }
 
+    private async Task SubmitBatchIfThresholdMetAsync()
+    {
+        var pendingRequests = (await _requestRepository.GetByStatusAsync(ProcessingStatus.Queued)).ToList();
+
+
+        _logger.LogInformation("Current queue size: {QueuedCount}, threshold: {Threshold}", pendingRequests.Count, _settings.QueueSizeThreshold);
+
+        if (pendingRequests.Count < _settings.QueueSizeThreshold)
+        {
+            _logger.LogDebug("Queue size {QueuedCount} has not reached threshold {Threshold}, skipping batch submission",
+                pendingRequests, _settings.QueueSizeThreshold);
+            return;
+        }
+
+
+        await ProcessBatchQueueAsync(pendingRequests);
+
+    }
+
+    public async Task ProcessBatchQueueAsync(List<DocumentRequest>? pendingRequests = null)
+    {
+
+        List<DocumentRequest> requests = pendingRequests ??
+            (await _requestRepository.GetQueuedRequestsAsync(_settings.QueueSizeThreshold)).ToList();
+
+        if (requests.Count == 0)
+            return;
+
+        _logger.LogInformation("Submitting batch with {Count} requests", requests.Count);
+
+        try
+        {
+
+            // Create batch job record
+            var batchJob = new BatchJob
+            {
+                RequestIds = requests.Select(r => r.Id).ToList(),
+                TotalRequests = requests.Count,
+                Status = BatchJobStatus.Created
+            };
+
+            // Update request statuses
+            foreach (var request in requests)
+            {
+                request.Status = ProcessingStatus.BatchSubmitted;
+                request.BatchId = batchJob.Id;
+                await _requestRepository.UpdateAsync(request);
+            }
+
+            await _batchJobRepository.CreateAsync(batchJob);
+
+            _logger.LogInformation("Processing {Count} queued requests for markdown conversion", requests.Count);
+
+
+            foreach (var request in requests)
+            {
+                try
+                {
+                    _logger.LogDebug("Converting document {RequestId} to markdown", request.Id);
+
+                    var markdownContent = await _documentIntelligenceService.ConvertToMarkdownAsync(
+                        request.DocumentContent,
+                        request.DocumentName);
+
+                    request.MarkdownContent = markdownContent;
+                    request.Status = ProcessingStatus.Queued;
+                    await _requestRepository.UpdateAsync(request);
+
+                    _logger.LogDebug("Successfully converted document {RequestId} to markdown", request.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to convert document {RequestId} to markdown", request.Id);
+                    request.Status = ProcessingStatus.Failed;
+                    request.ErrorMessage = $"Failed to convert document to markdown: {ex.Message}";
+                    await _requestRepository.UpdateAsync(request);
+                }
+            }
+
+
+            // Submit to OpenAI Batch API
+            var openAiBatchId = await _batchLlmService.SubmitBatchAsync(requests);
+
+            // Update batch job with OpenAI batch ID
+            batchJob.OpenAiBatchId = openAiBatchId;
+            batchJob.Status = BatchJobStatus.Submitted;
+            batchJob.SubmittedAt = DateTime.UtcNow;
+            await _batchJobRepository.UpdateAsync(batchJob);
+
+
+
+            _logger.LogInformation("Successfully submitted batch {BatchId} with OpenAI batch ID {OpenAiBatchId}",
+                batchJob.Id, openAiBatchId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to submit batch");
+
+            // Revert request statuses back to queued
+            foreach (var request in requests)
+            {
+                request.Status = ProcessingStatus.Queued;
+                request.BatchId = null;
+                await _requestRepository.UpdateAsync(request);
+            }
+
+            throw;
+        }
+    }
+
     public async Task<RequestStatusResponse?> GetRequestStatusAsync(string requestId)
     {
         var request = await _requestRepository.GetByIdAsync(requestId);
-        
+
         if (request == null)
             return null;
 
